@@ -1,4 +1,4 @@
-all:im_bin ims_bin imr_bin 
+all:im_bin ims_bin imr_bin
 
 
 im_bin:

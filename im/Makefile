@@ -1,9 +1,13 @@
-all:im benchmark benchmark_group benchmark_connection benchmark_sender benchmark_storage benchmark_route
+all:im benchmark benchmark_group benchmark_connection benchmark_sender benchmark_storage benchmark_route one two
 
 im:im.go subscriber.go connection.go client.go im_client.go room_client.go voip_client.go customer_client.go route.go app_route.go protocol.go message.go group_manager.go group.go set.go config.go monitoring.go sio.go storage_client.go storage_rpc.go channel.go storage_message.go route_message.go user.go reload.go rpc.go device.go
 	go build im.go subscriber.go connection.go client.go im_client.go room_client.go voip_client.go customer_client.go route.go app_route.go protocol.go message.go group_manager.go group.go set.go config.go monitoring.go sio.go storage_client.go storage_rpc.go channel.go storage_message.go route_message.go user.go reload.go rpc.go device.go
 
+one:one.go protocol.go message.go
+	go build one.go protocol.go message.go
 
+two:two.go protocol.go message.go
+	go build two.go protocol.go message.go
 
 benchmark:benchmark.go protocol.go message.go
 	go build benchmark.go protocol.go message.go

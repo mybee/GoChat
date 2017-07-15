@@ -1,21 +1,3 @@
-/**
- * Copyright (c) 2014-2015, GoBelieve     
- * All rights reserved.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
 
 package main
 import "net"
@@ -174,6 +156,7 @@ func handle_sync_client(conn *net.TCPConn) {
 
 func ListenSyncClient() {
 	Listen(handle_sync_client, config.sync_listen)
+
 }
 
 func GroupLoop(c chan func()) {
@@ -210,7 +193,7 @@ func FlushLoop() {
 		storage.FlushReceived()
 	}
 }
-
+// 新建redis池
 func NewRedisPool(server, password string, db int) *redis.Pool {
 	return &redis.Pool{
 		MaxIdle:     100,
@@ -242,13 +225,16 @@ func NewRedisPool(server, password string, db int) *redis.Pool {
 
 
 func ListenRPCClient() {
+	fmt.Println("监听rpc客户端")
 	dispatcher := gorpc.NewDispatcher()
 	dispatcher.AddFunc("SyncMessage", SyncMessage)
 	dispatcher.AddFunc("SyncGroupMessage", SyncGroupMessage)
 	dispatcher.AddFunc("SavePeerMessage", SavePeerMessage)
 	dispatcher.AddFunc("SaveGroupMessage", SaveGroupMessage)
 	dispatcher.AddFunc("GetNewCount", GetNewCount)
-	
+
+	// gorpc的服务器
+	fmt.Println("rpc的地址: ", config.rpc_listen)
 	s := &gorpc.Server{
 		Addr: config.rpc_listen,
 		Handler: dispatcher.NewHandlerFunc(),
@@ -269,35 +255,44 @@ func main() {
 	}
 
 	config = read_storage_cfg(flag.Args()[0])
-	log.Infof("listen:%s rpc listen:%s storage root:%s sync listen:%s master address:%s is push system:%d\n", 
+	fmt.Printf("配置", config)
+	fmt.Printf("listen:%s rpc listen:%s storage root:%s sync listen:%s master address:%s is push system:%d\n",
 		config.listen, config.rpc_listen, config.storage_root, config.sync_listen, config.master_address, config.is_push_system)
 
-	log.Infof("redis address:%s password:%s db:%d\n", 
+	fmt.Printf("redis address:%s password:%s db:%d\n",
 		config.redis_address, config.redis_password, config.redis_db)
 
 	redis_pool = NewRedisPool(config.redis_address, config.redis_password, 
 		config.redis_db)
+	fmt.Println("开启了redis池:", redis_pool)
 	storage = NewStorage(config.storage_root)
 	
 	master = NewMaster()
+	fmt.Println("1")
 	master.Start()
+	fmt.Println("2")
 	if len(config.master_address) > 0 {
 		slaver := NewSlaver(config.master_address)
 		slaver.Start()
 	}
-
+	fmt.Println("3")
 	group_manager = NewGroupManager()
+	fmt.Println("group_manager: ", group_manager)
 	group_manager.Start()
+	fmt.Println("4")
 
 	for i := 0; i < GROUP_C_COUNT; i++ {
 		go GroupLoop(group_c[i])
 	}
-
+	fmt.Println("5")
 	//刷新storage缓存的ack
 	go FlushLoop()
+	fmt.Println("6")
 	go waitSignal()
+	fmt.Println("7")
 
 	go ListenSyncClient()
+	fmt.Println("8")
 	go ListenRPCClient()
 
 	ListenClient()

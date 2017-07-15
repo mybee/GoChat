@@ -1,27 +1,9 @@
-/**
- * Copyright (c) 2014-2015, GoBelieve     
- * All rights reserved.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
-
 package main
 import "bytes"
 import "encoding/binary"
 
-//路由服务器消息
+// 路由服务器消息
+// 分发给不同的app
 const MSG_PUBLISH_OFFLINE = 128
 const MSG_SUBSCRIBE = 130
 const MSG_UNSUBSCRIBE = 131
@@ -72,7 +54,7 @@ type AppMessage struct {
 	msg      *Message
 }
 
-
+// 转化消息
 func (amsg *AppMessage) ToData() []byte {
 	if amsg.msg == nil {
 		return nil

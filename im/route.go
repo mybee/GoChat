@@ -1,7 +1,10 @@
 package main
 
 import "sync"
-import log "github.com/golang/glog"
+import (
+	log "github.com/golang/glog"
+	"fmt"
+)
 
 
 type Route struct {
@@ -12,6 +15,7 @@ type Route struct {
 }
 
 func NewRoute(appid int64) *Route {
+	fmt.Println("新建一个路由")
 	route := new(Route)
 	route.appid = appid
 	route.clients = make(map[int64]ClientSet)
@@ -53,11 +57,13 @@ func (route *Route) RemoveRoomClient(room_id int64, client *Client) bool {
 		}
 		return true
 	}
+	fmt.Println("room client non exists")
 	log.Info("room client non exists")
 	return false
 }
 
 func (route *Route) AddClient(client *Client) {
+	fmt.Println("给route添加客户端")
 	route.mutex.Lock()
 	defer route.mutex.Unlock()
 	set, ok := route.clients[client.uid]; 
@@ -69,6 +75,7 @@ func (route *Route) AddClient(client *Client) {
 }
 
 func (route *Route) RemoveClient(client *Client) bool {
+	fmt.Println("移除route中的客户端")
 	route.mutex.Lock()
 	defer route.mutex.Unlock()
 	if set, ok := route.clients[client.uid]; ok {
@@ -78,11 +85,13 @@ func (route *Route) RemoveClient(client *Client) bool {
 		}
 		return true
 	}
+	fmt.Println("client non exists")
 	log.Info("client non exists")
 	return false
 }
 
 func (route *Route) FindClientSet(uid int64) ClientSet {
+	fmt.Println("在route中查找某一个客户端")
 	route.mutex.Lock()
 	defer route.mutex.Unlock()
 
@@ -95,6 +104,7 @@ func (route *Route) FindClientSet(uid int64) ClientSet {
 }
 
 func (route *Route) IsOnline(uid int64) bool {
+	fmt.Println("查看路由中的客户端是否在线")
 	route.mutex.Lock()
 	defer route.mutex.Unlock()
 

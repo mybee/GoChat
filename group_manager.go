@@ -1,22 +1,3 @@
-/**
- * Copyright (c) 2014-2015, GoBelieve     
- * All rights reserved.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
-
 package main
 
 import "sync"
@@ -46,19 +27,25 @@ type GroupManager struct {
 }
 
 func NewGroupManager() *GroupManager {
+	fmt.Println("群管理1")
 	now := time.Now().Unix()
 	r := fmt.Sprintf("ping_%d", now)
+	fmt.Println("群管理2")
 	for i := 0; i < 4; i++ {
 		n := rand.Int31n(26)
+		fmt.Println(n)
 		r = r + string('a' + n)
 	}
-	
+	fmt.Println("群管理3")
 	m := new(GroupManager)
 	m.groups = make(map[int64]*Group)
+	fmt.Println("群管理4")
 	m.ping = r
+	fmt.Println("r: ", r)
+	fmt.Println("m: ", m)
 	return m
 }
-
+// 获取所有群的数组
 func (group_manager *GroupManager) GetGroups() []*Group{
 	group_manager.mutex.Lock()
 	defer group_manager.mutex.Unlock()
@@ -69,7 +56,7 @@ func (group_manager *GroupManager) GetGroups() []*Group{
 	}
 	return groups
 }
-
+// 查找群
 func (group_manager *GroupManager) FindGroup(gid int64) *Group {
 	group_manager.mutex.Lock()
 	defer group_manager.mutex.Unlock()
@@ -78,7 +65,7 @@ func (group_manager *GroupManager) FindGroup(gid int64) *Group {
 	}
 	return nil
 }
-
+// 根据appid和uid查找群
 func (group_manager *GroupManager) FindUserGroups(appid int64, uid int64) []*Group {
 	group_manager.mutex.Lock()
 	defer group_manager.mutex.Unlock()
@@ -91,7 +78,7 @@ func (group_manager *GroupManager) FindUserGroups(appid int64, uid int64) []*Gro
 	}
 	return groups
 }
-
+// 处理创建群
 func (group_manager *GroupManager) HandleCreate(data string) {
 	arr := strings.Split(data, ",")
 	if len(arr) != 3 {
@@ -127,7 +114,7 @@ func (group_manager *GroupManager) HandleCreate(data string) {
 		group_manager.groups[gid] = NewGroup(gid, appid, nil)
 	}
 }
-
+// 处理解散群
 func (group_manager *GroupManager) HandleDisband(data string) {
 	gid, err := strconv.ParseInt(data, 10, 64)
 	if err != nil {
@@ -144,7 +131,7 @@ func (group_manager *GroupManager) HandleDisband(data string) {
 		log.Infof("group:%d nonexists\n", gid)
 	}
 }
-
+// 处理添加群成员
 func (group_manager *GroupManager) HandleMemberAdd(data string) {
 	arr := strings.Split(data, ",")
 	if len(arr) != 2 {
@@ -173,7 +160,7 @@ func (group_manager *GroupManager) HandleMemberAdd(data string) {
 		log.Infof("can't find group:%d\n", gid)
 	}
 }
-
+// 处理成员移除
 func (group_manager *GroupManager) HandleMemberRemove(data string) {
 	arr := strings.Split(data, ",")
 	if len(arr) != 2 {
@@ -202,7 +189,7 @@ func (group_manager *GroupManager) HandleMemberRemove(data string) {
 		log.Infof("can't find group:%d\n", gid)
 	}
 }
-
+// 重新加载群
 func (group_manager *GroupManager) ReloadGroup() bool {
 	log.Info("reload group...")
 	db, err := sql.Open("mysql", config.mysqldb_datasource)
@@ -227,15 +214,17 @@ func (group_manager *GroupManager) ReloadGroup() bool {
 
 func (group_manager *GroupManager) Reload() {
 	//循环直到成功
+	fmt.Println("开始循环.....")
 	for {
 		r := group_manager.ReloadGroup()
 		if r {
 			break
 		}
 		time.Sleep(1 * time.Second)
+		fmt.Println("循环了一次")
 	}
 }
-
+// 执行一次
 func (group_manager *GroupManager) RunOnce() bool {
 	t := redis.DialReadTimeout(time.Second*SUBSCRIBE_HEATBEAT)
 	c, err := redis.Dial("tcp", config.redis_address, t)
@@ -304,7 +293,7 @@ func (group_manager *GroupManager) Ping() {
 	}
 }
 
-
+// PING的循环
 func (group_manager *GroupManager) PingLoop() {
 	for {
 		group_manager.Ping()
@@ -314,6 +303,9 @@ func (group_manager *GroupManager) PingLoop() {
 
 func (group_manager *GroupManager) Start() {
 	group_manager.Reload()
+	fmt.Println("群管理重载")
 	go group_manager.Run()
+	fmt.Println("群管理启动")
 	go group_manager.PingLoop()
+	fmt.Println("群管理pingloop")
 }

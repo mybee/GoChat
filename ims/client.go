@@ -1,27 +1,11 @@
-/**
- * Copyright (c) 2014-2015, GoBelieve     
- * All rights reserved.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
-
 package main
 import "net"
 import "bytes"
 import "encoding/binary"
-import log "github.com/golang/glog"
+import (
+	log "github.com/golang/glog"
+	"fmt"
+)
 
 
 type Client struct {
@@ -31,7 +15,7 @@ type Client struct {
 	wt     chan *Message
 	app_route *AppRoute
 }
-
+// 新建客户端
 func NewClient(conn *net.TCPConn) *Client {
 	client := new(Client)
 	client.conn = conn 
@@ -40,7 +24,7 @@ func NewClient(conn *net.TCPConn) *Client {
 	client.app_route = NewAppRoute()
 	return client
 }
-
+// 是否包含该群
 func (client *Client) ContainAppGroupID(appid int64, gid int64) bool {
 	route := client.app_route.FindRoute(appid)
 	if route == nil {
@@ -48,7 +32,7 @@ func (client *Client) ContainAppGroupID(appid int64, gid int64) bool {
 	}
 	return route.ContainGroupID(gid)
 }
-
+// 包含该群组成员
 func (client *Client) ContainGroupUserID(appid int64, gid int64, uid int64) bool {
 	route := client.app_route.FindRoute(appid)
 	if route == nil {
@@ -66,7 +50,7 @@ func (client *Client) ContainAppUserID(id *AppUserID) bool {
 
 	return route.ContainUserID(id.uid)
 }
-
+// 读
 func (client *Client) Read() {
 	for {
 		msg := client.read()
@@ -78,7 +62,7 @@ func (client *Client) Read() {
 		client.HandleMessage(msg)
 	}
 }
-
+// 写
 func (client *Client) Write() {
 	for {
 		msg := <- client.wt
@@ -180,14 +164,14 @@ func (client *Client) HandleSaveAndEnqueue(sae *SAEMessage) {
 	msg := &Message{cmd:MSG_RESULT, body:result}
 	SendMessage(client.conn, msg)
 }
-
+// 读DQMessage
 func (client *Client) HandleDQMessage(dq *DQMessage) {
 	storage.DequeueOffline(dq.msgid, dq.appid, dq.receiver, dq.device_id)
 	result := &MessageResult{status:0}
 	msg := &Message{cmd:MSG_RESULT, body:result}
 	SendMessage(client.conn, msg)
 }
-
+// 写EMessage
 func (client *Client) WriteEMessage(emsg *EMessage) []byte{
 	buffer := new(bytes.Buffer)
 	binary.Write(buffer, binary.BigEndian, emsg.msgid)
@@ -232,7 +216,7 @@ func (client *Client) filterMessages(messages []*EMessage, id *LoadOffline) []*E
 	}
 	return c
 }
-
+// 处理加载离线消息
 func (client *Client) HandleLoadOffline(id *LoadOffline) {
 	messages := storage.LoadOfflineMessage(id.appid, id.uid, id.device_id)
 	result := &MessageResult{status:0}
@@ -253,7 +237,7 @@ func (client *Client) HandleLoadOffline(id *LoadOffline) {
 	SendMessage(client.conn, msg)
 }
 
-
+// 处理加载最新消息
 func (client *Client) HandleLoadLatest(lh *LoadLatest) {
 	messages := storage.LoadLatestMessages(lh.app_uid.appid, lh.app_uid.uid, int(lh.limit))
 	result := &MessageResult{status:0}
@@ -271,7 +255,7 @@ func (client *Client) HandleLoadLatest(lh *LoadLatest) {
 	msg := &Message{cmd:MSG_RESULT, body:result}
 	SendMessage(client.conn, msg)	
 }
-
+// 处理加载历史消息
 func (client *Client) HandleLoadHistory(lh *LoadHistory) {
 	messages := storage.LoadHistoryMessages(lh.appid, lh.uid, lh.msgid)
 	result := &MessageResult{status:0}
@@ -289,7 +273,7 @@ func (client *Client) HandleLoadHistory(lh *LoadHistory) {
 	msg := &Message{cmd:MSG_RESULT, body:result}
 	SendMessage(client.conn, msg)	
 }
-
+// 处理加载群离线消息
 func (client *Client) HandleLoadGroupOffline(lh *LoadGroupOffline) {
 	messages := storage.LoadGroupOfflineMessage(lh.appid, lh.gid, lh.uid, lh.device_id, GROUP_OFFLINE_LIMIT)
 	result := &MessageResult{status:0}
@@ -322,7 +306,7 @@ func (client *Client) HandleLoadGroupOffline(lh *LoadGroupOffline) {
 	msg := &Message{cmd:MSG_RESULT, body:result}
 	SendMessage(client.conn, msg)
 }
-
+// 处理订阅群组
 func (client *Client) HandleSubscribeGroup(lo *AppGroupMemberID) {
 	log.Infof("subscribe group appid:%d gid:%d uid:%d\n", lo.appid, lo.gid, lo.uid)
 	AddClient(client)
@@ -330,12 +314,12 @@ func (client *Client) HandleSubscribeGroup(lo *AppGroupMemberID) {
 	route := client.app_route.FindOrAddRoute(lo.appid)
 	route.AddGroupMember(lo.gid, lo.uid)
 }
-
+// 处理没有订阅的群组
 func (client *Client) HandleUnSubscribeGroup(id *AppGroupMemberID) {
 	route := client.app_route.FindOrAddRoute(id.appid)
 	route.RemoveGroupMember(id.gid, id.uid)
 }
-
+// 处理订阅
 func (client *Client) HandleSubscribe(id *AppUserID) {
 	log.Infof("subscribe appid:%d uid:%d", id.appid, id.uid)
 	AddClient(client)
@@ -343,13 +327,13 @@ func (client *Client) HandleSubscribe(id *AppUserID) {
 	route := client.app_route.FindOrAddRoute(id.appid)
 	route.AddUserID(id.uid)
 }
-
+// 处理取消订阅
 func (client *Client) HandleUnsubscribe(id *AppUserID) {
 	log.Infof("unsubscribe appid:%d uid:%d", id.appid, id.uid)
 	route := client.app_route.FindOrAddRoute(id.appid)
 	route.RemoveUserID(id.uid)
 }
-
+// 处理初始化队列
 func (client *Client) HandleInitQueue(q *InitQueue) {
 	log.Infof("init queue appid:%d uid:%d device id:%d", 
 		q.appid, q.uid, q.device_id)
@@ -359,7 +343,7 @@ func (client *Client) HandleInitQueue(q *InitQueue) {
 	msg := &Message{cmd:MSG_RESULT, body:result}
 	SendMessage(client.conn, msg)
 }
-
+// 处理初始化群队列
 func (client *Client) HandleInitGroupQueue(q *InitGroupQueue) {
 	log.Infof("init group queue appid:%d gid:%d uid:%d device id:%d", 
 		q.appid, q.gid, q.uid, q.device_id)
@@ -369,7 +353,7 @@ func (client *Client) HandleInitGroupQueue(q *InitGroupQueue) {
 	msg := &Message{cmd:MSG_RESULT, body:result}
 	SendMessage(client.conn, msg)
 }
-
+// 处理消息
 func (client *Client) HandleMessage(msg *Message) {
 	log.Info("msg cmd:", Command(msg.cmd))
 	switch msg.cmd {
@@ -402,23 +386,24 @@ func (client *Client) HandleMessage(msg *Message) {
 	case MSG_INIT_GROUP_QUEUE:
 		client.HandleInitGroupQueue(msg.body.(*InitGroupQueue))
 	default:
+		fmt.Println("unknown msg:", msg.cmd)
 		log.Warning("unknown msg:", msg.cmd)
 	}
 }
-
+// 运行
 func (client *Client) Run() {
 	go client.Read()
 	go client.Write()
 }
-
+// 读取
 func (client *Client) read() *Message {
 	return ReceiveMessage(client.conn)
 }
-
+// 发送
 func (client *Client) send(msg *Message) {
 	SendMessage(client.conn, msg)
 }
-
+// 克隆
 func (client *Client) close() {
 	client.conn.Close()
 }

@@ -1,21 +1,3 @@
-/**
- * Copyright (c) 2014-2015, GoBelieve     
- * All rights reserved.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
 
 package main
 import "sync"
@@ -27,7 +9,7 @@ type Route struct {
 	groups    map[int64]*Group
 	uids      IntSet
 }
-
+// 创建新的路由
 func NewRoute(appid int64) *Route {
 	r := new(Route)
 	r.appid = appid
@@ -35,14 +17,14 @@ func NewRoute(appid int64) *Route {
 	r.uids = NewIntSet()
 	return r
 }
-
+// 是否包含该用户id
 func (route *Route) ContainUserID(uid int64) bool {
 	route.mutex.Lock()
 	defer route.mutex.Unlock()
 	
 	return route.uids.IsMember(uid)
 }
-
+// 添加用户
 func (route *Route) AddUserID(uid int64) {
 	route.mutex.Lock()
 	defer route.mutex.Unlock()
@@ -50,13 +32,14 @@ func (route *Route) AddUserID(uid int64) {
 	route.uids.Add(uid)
 }
 
+// 移除用户
 func (route *Route) RemoveUserID(uid int64) {
 	route.mutex.Lock()
 	defer route.mutex.Unlock()
 
 	route.uids.Remove(uid)
 }
-
+// 添加群成员
 func (route *Route) AddGroupMember(gid int64, member int64) {
 	route.mutex.Lock()
 	defer route.mutex.Unlock()
@@ -69,7 +52,7 @@ func (route *Route) AddGroupMember(gid int64, member int64) {
 		route.groups[gid] = group
 	}
 }
-
+// 移除群成员
 func (route *Route) RemoveGroupMember(gid int64, member int64) {
 	route.mutex.Lock()
 	defer route.mutex.Unlock()
@@ -81,7 +64,7 @@ func (route *Route) RemoveGroupMember(gid int64, member int64) {
 		}
 	}
 }
-
+// 是否包含群成员id
 func (route *Route) ContainGroupID(gid int64) bool {
 	route.mutex.Lock()
 	defer route.mutex.Unlock()
@@ -89,7 +72,7 @@ func (route *Route) ContainGroupID(gid int64) bool {
 	_, ok := route.groups[gid]
 	return ok
 }
-
+// 是否包含群成员
 func (route *Route) ContainGroupMember(gid int64, member int64) bool {
 	route.mutex.Lock()
 	defer route.mutex.Unlock()

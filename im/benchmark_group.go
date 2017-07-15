@@ -110,7 +110,7 @@ func send(uid int64, gid int64, conn *net.TCPConn) {
 			conn.SetDeadline(time.Now().Add(40 * time.Second))
 			msg := ReceiveMessage(conn)
 			if msg == nil {
-				log.Println("receive nill message")
+				fmt.Println("receive nill message")
 				total = i
 				break
 			}
@@ -122,7 +122,7 @@ func send(uid int64, gid int64, conn *net.TCPConn) {
 			}
 	 
 			if msg.cmd != MSG_GROUP_IM {
-				log.Println("mmmmmm:", Command(msg.cmd))
+				fmt.Println("mmmmmm:", Command(msg.cmd))
 				i--
 			}
 	 

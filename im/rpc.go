@@ -9,7 +9,12 @@ import log "github.com/golang/glog"
 import "io/ioutil"
 import "github.com/bitly/go-simplejson"
 import pb "github.com/GoBelieveIO/im_service/rpc"
-import "golang.org/x/net/context"
+import (
+	"golang.org/x/net/context"
+	"fmt"
+	"database/sql"
+	"math/rand"
+)
 
 
 
@@ -71,6 +76,7 @@ func SendGroupIMMessage(im *IMMessage, appid int64) {
 }
 
 func SendIMMessage(im *IMMessage, appid int64) {
+	fmt.Println("发送IM消息")
 	m := &Message{cmd: MSG_IM, version:DEFAULT_VERSION, body: im}
 	msgid, err := SaveMessage(appid, im.receiver, 0, m)
 	if err != nil {
@@ -101,6 +107,7 @@ func SendIMMessage(im *IMMessage, appid int64) {
 type RPCServer struct {}
 
 func (s *RPCServer) PostGroupNotification(ctx context.Context, n *pb.GroupNotification) (*pb.Reply, error){
+	fmt.Println("发送群推送")
 	members := NewIntSet()
 	for _, m := range n.Members {
 		members.Add(m)
@@ -125,6 +132,7 @@ func (s *RPCServer) PostGroupNotification(ctx context.Context, n *pb.GroupNotifi
 }
 
 func (s *RPCServer) PostPeerMessage(ctx context.Context, p *pb.PeerMessage) (*pb.Reply, error) {
+	fmt.Println("发送单人消息")
 	im := &IMMessage{}
 	im.sender = p.Sender
 	im.receiver = p.Receiver
@@ -139,6 +147,7 @@ func (s *RPCServer) PostPeerMessage(ctx context.Context, p *pb.PeerMessage) (*pb
 
 
 func (s *RPCServer) PostGroupMessage(ctx context.Context, p *pb.GroupMessage) (*pb.Reply, error) {
+	fmt.Println("发送群消息")
 	im := &IMMessage{}
 	im.sender = p.Sender
 	im.receiver = p.GroupId
@@ -176,7 +185,7 @@ func (s *RPCServer) PostSystemMessage(ctx context.Context, sm *pb.SystemMessage)
 
 
 func (s *RPCServer) PostRealTimeMessage(ctx context.Context, rm *pb.RealTimeMessage) (*pb.Reply, error) {
-
+	fmt.Println("发送及时消息")
 	rt := &RTMessage{}
 	rt.sender = rm.Sender
 	rt.receiver = rm.Receiver
@@ -190,7 +199,7 @@ func (s *RPCServer) PostRealTimeMessage(ctx context.Context, rm *pb.RealTimeMess
 
 
 func (s *RPCServer) PostRoomMessage(ctx context.Context, rm *pb.RoomMessage) (*pb.Reply, error) {
-
+	fmt.Println("发送聊天室消息")
 	room_im := &RoomMessage{new(RTMessage)}
 	room_im.sender = rm.Uid
 	room_im.receiver = rm.RoomId
@@ -275,6 +284,7 @@ func (s *RPCServer) GetNewCount(ctx context.Context, nc *pb.NewCountRequest) (*p
 
 
 func (s *RPCServer) LoadLatestMessage(ctx context.Context, r *pb.LoadLatestRequest) (*pb.HistoryMessage, error) {
+	fmt.Println("加载最近的消息")
 	appid := r.Appid
 	uid := r.Uid
 	limit := r.Limit
@@ -352,6 +362,7 @@ func (s *RPCServer) LoadLatestMessage(ctx context.Context, r *pb.LoadLatestReque
 
 
 func (s *RPCServer) LoadHistoryMessage(ctx context.Context, r *pb.LoadHistoryRequest) (*pb.HistoryMessage, error) {
+	fmt.Println("加载历史消息")
 	appid := r.Appid
 	uid := r.Uid
 	msgid := r.LastId
@@ -431,7 +442,7 @@ func (s *RPCServer) LoadHistoryMessage(ctx context.Context, r *pb.LoadHistoryReq
 
 //http
 func PostGroupNotification(w http.ResponseWriter, req *http.Request) {
-	log.Info("post group notification")
+	log.Info("HTTP -- > post group notification发送群推送")
 	body, err := ioutil.ReadAll(req.Body)
 	if err != nil {
 		WriteHttpError(400, err.Error(), w)
@@ -501,6 +512,8 @@ func PostGroupNotification(w http.ResponseWriter, req *http.Request) {
 
 
 func PostIMMessage(w http.ResponseWriter, req *http.Request) {
+	fmt.Println("http--这是什么啊发送信息!!!")
+	// 获取body 是byte类型的
 	body, err := ioutil.ReadAll(req.Body)
 	if err != nil {
 		WriteHttpError(400, err.Error(), w)
@@ -509,19 +522,24 @@ func PostIMMessage(w http.ResponseWriter, req *http.Request) {
 
 	m, _ := url.ParseQuery(req.URL.RawQuery)
 
-	appid, err := strconv.ParseInt(m.Get("appid"), 10, 64)
-	if err != nil {
-		log.Info("error:", err)
-		WriteHttpError(400, "invalid json format", w)
-		return
-	}
+	fmt.Println("parseURL: ", m)
 
-	sender, err := strconv.ParseInt(m.Get("sender"), 10, 64)
+	appid, err := strconv.ParseInt(m.Get("appid"), 10, 64)
+	fmt.Println("appid: ", appid)
 	if err != nil {
 		log.Info("error:", err)
 		WriteHttpError(400, "invalid json format", w)
 		return
 	}
+	fmt.Println("1")
+	sender, err := strconv.ParseInt(m.Get("sender"), 10, 64)
+	fmt.Println("sender:", sender)
+	if err != nil {
+		log.Info("error:", err)
+		WriteHttpError(400, "invalid json format", w)
+		return
+	}
+	fmt.Println("2")
 
 	var is_group bool
 	msg_type := m.Get("class")
@@ -534,51 +552,64 @@ func PostIMMessage(w http.ResponseWriter, req *http.Request) {
 		WriteHttpError(400, "invalid message class", w)
 		return
 	}
-
-	obj, err := simplejson.NewJson(body)
-	if err != nil {
-		log.Info("error:", err)
-		WriteHttpError(400, "invalid json format", w)
-		return
-	}
-
-	sender2, err := obj.Get("sender").Int64()
+	fmt.Println("3")
+	fmt.Println("body:", body[appid])
+	// 转化为json
+	//var obj map[string] interface{}
+	//json.Unmarshal(body, &obj)
+	fmt.Println("bodySTR: ", string(body))
+	//obj, err := simplejson.NewJson(body)
+	//if err != nil {
+	//	log.Info("error:", err)
+	//	fmt.Println("err: ", err)
+	//	WriteHttpError(400, "invalid json format", w)
+	//	return
+	//}
+	//fmt.Println("4")
+	//
+	//sender2, err := obj.Get("sender").Int64()
+	sender2 := int64(2)
 	if err == nil && sender == 0 {
 		sender = sender2
 	}
-
-	receiver, err := obj.Get("receiver").Int64()
-	if err != nil {
-		log.Info("error:", err)
-		WriteHttpError(400, "invalid json format", w)
-		return		
-	}
-	
-	content, err := obj.Get("content").String()
-	if err != nil {
-		log.Info("error:", err)
-		WriteHttpError(400, "invalid json format", w)
-		return		
-	}
-
+	//fmt.Println("5")
+	//receiver, err := obj.Get("receiver").Int64()
+	//if err != nil {
+	//	log.Info("error:", err)
+	//	WriteHttpError(400, "invalid json format", w)
+	//	return
+	//}
+	receiver := int64(1)
+	//fmt.Println("6")
+	//content, err := obj.Get("content").String()
+	//if err != nil {
+	//	log.Info("error:", err)
+	//	WriteHttpError(400, "invalid json format", w)
+	//	return
+	//}
+	content := "mafeng"
+	fmt.Println("7")
 	im := &IMMessage{}
 	im.sender = sender
 	im.receiver = receiver
 	im.msgid = 0
 	im.timestamp = int32(time.Now().Unix())
 	im.content = content
-
+	fmt.Println("8")
 	if is_group {
 		SendGroupIMMessage(im, appid)
+		fmt.Println("post group im message success")
 		log.Info("post group im message success")
  	} else {
 		SendIMMessage(im, appid)
+		fmt.Println("post peer im message success")
 		log.Info("post peer im message success")
 	}
 	w.WriteHeader(200)
 }
 
 func LoadLatestMessage(w http.ResponseWriter, req *http.Request) {
+	fmt.Println("http->加载最近的消息")
 	log.Info("load latest message")
 	m, _ := url.ParseQuery(req.URL.RawQuery)
 
@@ -669,6 +700,7 @@ func LoadLatestMessage(w http.ResponseWriter, req *http.Request) {
 }
 
 func LoadHistoryMessage(w http.ResponseWriter, req *http.Request) {
+	fmt.Println("加载历史消息")
 	log.Info("load message")
 	m, _ := url.ParseQuery(req.URL.RawQuery)
 
@@ -760,6 +792,7 @@ func LoadHistoryMessage(w http.ResponseWriter, req *http.Request) {
 }
 
 func GetOfflineCount(w http.ResponseWriter, req *http.Request){
+	fmt.Println("获取离线的数量")
 	m, _ := url.ParseQuery(req.URL.RawQuery)
 
 	appid, err := strconv.ParseInt(m.Get("appid"), 10, 64)
@@ -797,6 +830,7 @@ func GetOfflineCount(w http.ResponseWriter, req *http.Request){
 }
 
 func SendNotification(w http.ResponseWriter, req *http.Request) {
+	fmt.Println("HTTP --> 发推送")
 	body, err := ioutil.ReadAll(req.Body)
 	if err != nil {
 		WriteHttpError(400, err.Error(), w)
@@ -868,6 +902,7 @@ func SendSystemMessage(w http.ResponseWriter, req *http.Request) {
 }
 
 func SendRoomMessage(w http.ResponseWriter, req *http.Request) {
+	fmt.Println("HTTP-->发送房间消息")
 	body, err := ioutil.ReadAll(req.Body)
 	if err != nil {
 		WriteHttpError(400, err.Error(), w)
@@ -916,6 +951,7 @@ func SendRoomMessage(w http.ResponseWriter, req *http.Request) {
 }
 
 func SendCustomerMessage(w http.ResponseWriter, req *http.Request) {
+	fmt.Println("HTTP --> 发送客服消息")
 	body, err := ioutil.ReadAll(req.Body)
 	if err != nil {
 		WriteHttpError(400, err.Error(), w)
@@ -1008,6 +1044,7 @@ func SendCustomerMessage(w http.ResponseWriter, req *http.Request) {
 
 
 func SendRealtimeMessage(w http.ResponseWriter, req *http.Request) {
+	fmt.Println("HTTP--> 发送及时的信息")
 	body, err := ioutil.ReadAll(req.Body)
 	if err != nil {
 		WriteHttpError(400, err.Error(), w)
@@ -1054,4 +1091,140 @@ func InitMessageQueue(w http.ResponseWriter, req *http.Request) {
 
 func DequeueMessage(w http.ResponseWriter, req *http.Request) {
 	w.WriteHeader(200)
+}
+
+func HTTPCreateGroup(w http.ResponseWriter, req *http.Request) {
+	db, err := sql.Open("mysql", config.mysqldb_datasource)
+	if err != nil {
+		fmt.Println("error:", err)
+	}
+	defer db.Close()
+	gid := CreateGroup(db, 2, 2, "mafeng", 1)
+	byt := fmt.Sprintf("jieguo : %d", gid)
+	byt2 := []byte(byt)
+	w.Write(byt2)
+	w.WriteHeader(200)
+}
+
+func HTTPDeleteGroup(w http.ResponseWriter, req *http.Request)  {
+	db, err := sql.Open("mysql", config.mysqldb_datasource)
+	if err != nil {
+		fmt.Println("error:", err)
+	}
+	defer db.Close()
+
+	isDelete := DeleteGroup(db, 1)
+	if isDelete {
+		backByte := []byte("删除qun成功")
+		w.Write(backByte)
+	} else {
+		backByte := []byte("删除qun成功")
+		w.Write(backByte)
+	}
+}
+
+func HTTPAddGroupMember(w http.ResponseWriter, req *http.Request)  {
+	db, err := sql.Open("mysql", config.mysqldb_datasource)
+	if err != nil {
+		fmt.Println("error:", err)
+	}
+	defer db.Close()
+
+	isAddGroupMember := AddGroupMember(db, 1, 3)
+	if isAddGroupMember {
+		backByte := []byte("添加群成员成功")
+		w.Write(backByte)
+	} else {
+		backByte := []byte("添加群成员成功")
+		w.Write(backByte)
+	}
+}
+
+func HTTPRemoveGroupMember(w http.ResponseWriter, req *http.Request)  {
+	db, err := sql.Open("mysql", config.mysqldb_datasource)
+	if err != nil {
+		fmt.Println("error:", err)
+	}
+	defer db.Close()
+
+	isAddGroupMember := RemoveGroupMember(db, 1, 3)
+	if isAddGroupMember {
+		backbyte := []byte("移除群成员成功")
+		w.Write(backbyte)
+	} else {
+		backbyte := []byte("移除群成员成功")
+		w.Write(backbyte)
+	}
+}
+
+func HTTPLoadAllGroupMembers(w http.ResponseWriter, req *http.Request)  {
+	db, err := sql.Open("mysql", config.mysqldb_datasource)
+	if err != nil {
+		fmt.Println("error:", err)
+	}
+	defer db.Close()
+
+	allMembers, err := LoadGroupMember(db, 1)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	fmt.Println("群成员: ", allMembers)
+	byt := fmt.Sprintf("群成员 : %d", allMembers)
+	w.Write([]byte(byt))
+
+
+}
+
+func HTTPGetAuthToken(w http.ResponseWriter, req *http.Request) {
+	//APP_KEY := "sVDIlIiDUm7tWPYWhi6kfNbrqui3ez44"
+	//APP_SECRET := "0WiCxAU1jh76SbgaaFC7qIaBPm2zkyM1"
+	query := req.URL.Query()
+	token := rand.Intn(123456789)
+	conn := redis_pool.Get()
+	fmt.Println("拿到redis了连接池")
+	defer conn.Close()
+	// 获取user_id和app_id
+	user_id := query["uid"][0]
+	fmt.Println("user_id: ", user_id)
+	//user_name := req.PostFormValue("user_name")
+	encrypt_appid_appsecret := req.Header.Get("Authorization")
+	if encrypt_appid_appsecret != "Basic Nzo0NDk3NjBiMTIwNjEwYWMwYjNhYmRiZDk1NTI1NGVlMA=="{
+		 w.Write([]byte("你无权获取token"))
+	}
+	fmt.Println("encrypt :", encrypt_appid_appsecret)
+	// 拼接token的key
+	key := token
+	fmt.Println("key->", key)
+	_, err := conn.Do("HMSET", key, "user_id", user_id, "app_id", 1144894155)
+	if err != nil {
+		fmt.Println("hmset 的时候出现错误:", err)
+	}
+
+	appid, uid, err := LoadUserAccessToken(strconv.Itoa(key))
+	fmt.Println("appid:", appid, "uid: ", uid)
+	if err != nil {
+		//return 0, 0, 0, err
+		w.Write([]byte("get appid and uid 出错"))
+		return
+	}
+	//
+	//forbidden, err := GetUserForbidden(appid, uid)
+	//if err != nil {
+	//	//return appid, uid, 0, nil
+	//	fmt.Println(uid, appid, 0)
+	//	w.Write([]byte("get userForbidden  出错"))
+	//	return
+	//}
+	//	fmt.Println(uid, appid, forbidden)
+	//	w.Write([]byte("成功"))
+	//	return
+		//return appid, uid, forbidden, nil
+	v := make(map[string]interface{})
+	v["token"] = token
+	fmt.Println("token: ", token)
+
+	body, _ := json.Marshal(v)
+
+	w.Write(body)
 }

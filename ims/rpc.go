@@ -1,24 +1,7 @@
 
-/**
- * Copyright (c) 2014-2015, GoBelieve     
- * All rights reserved.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
-
 package main
+
+import "fmt"
 
 func SyncMessage(addr string, sync_key *SyncHistory) []*HistoryMessage {
 
@@ -42,7 +25,7 @@ func SyncMessage(addr string, sync_key *SyncHistory) []*HistoryMessage {
 	}
 	return historyMessages
 }
-
+// 同步群消息
 func SyncGroupMessage(addr string , sync_key *SyncGroupHistory) []*HistoryMessage {
 	if sync_key.LastMsgID == 0 {
 		sync_key.LastMsgID = storage.GetLastGroupMsgID(sync_key.AppID, sync_key.GroupID, sync_key.Uid)
@@ -63,7 +46,7 @@ func SyncGroupMessage(addr string , sync_key *SyncGroupHistory) []*HistoryMessag
 	return historyMessages
 }
 
-
+// 保存单人消息
 func SavePeerMessage(addr string, m *PeerMessage) (int64, error) {
 	msg := &Message{cmd:int(m.Cmd), version:DEFAULT_VERSION}
 	msg.FromData(m.Raw)
@@ -77,10 +60,12 @@ func SavePeerMessage(addr string, m *PeerMessage) (int64, error) {
 		m := &Message{cmd:MSG_PUBLISH, body:am}
 		c.wt <- m
 	}
+	fmt.Println("存储的消息:", m)
+	fmt.Println("存储的消息的id:", msgid)
 
 	return msgid, nil
 }
-
+// 保存群消息
 func SaveGroupMessage(addr string, m *GroupMessage) (int64, error) {
 	msg := &Message{cmd:int(m.Cmd), version:DEFAULT_VERSION}
 	msg.FromData(m.Raw)

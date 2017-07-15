@@ -1,22 +1,3 @@
-/**
- * Copyright (c) 2014-2015, GoBelieve     
- * All rights reserved.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
-
 package main
 
 
@@ -79,7 +60,7 @@ func (storage *Storage) GetLastGroupMsgID(appid int64, gid int64, uid int64) int
 
 	return max_id
 }
-
+// 初始化群队列
 func (storage *Storage) InitGroupQueue(appid int64, gid int64, uid int64, did int64) {
 	member := &AppGroupMemberLoginID{appid:appid, gid:gid, uid:uid, device_id:did}
 	id, _ := storage.GetLastGroupReceivedID(member)
@@ -126,7 +107,7 @@ func (storage *Storage) InitGroupQueue(appid int64, gid int64, uid int64, did in
 	}
 }
 
-
+// 保存群消息
 func (storage *GroupStorage) SaveGroupMessage(appid int64, gid int64, device_id int64, msg *Message) int64 {
 	storage.mutex.Lock()
 	defer storage.mutex.Unlock()
@@ -141,7 +122,7 @@ func (storage *GroupStorage) SaveGroupMessage(appid int64, gid int64, device_id 
 	storage.SetLastGroupMessageID(appid, gid, last_id)
 	return msgid
 }
-
+// 设置最新的群消息id
 func (storage *GroupStorage) SetLastGroupMessageID(appid int64, gid int64, msgid int64) {
 	key := fmt.Sprintf("g_%d_%d", appid, gid)
 	value := fmt.Sprintf("%d", msgid)	
@@ -151,7 +132,7 @@ func (storage *GroupStorage) SetLastGroupMessageID(appid int64, gid int64, msgid
 		return
 	}
 }
-
+// 获取最新的群消息id
 func (storage *GroupStorage) GetLastGroupMessageID(appid int64, gid int64) (int64, error) {
 	key := fmt.Sprintf("g_%d_%d", appid, gid)
 	value, err := storage.db.Get([]byte(key), nil)
@@ -167,7 +148,7 @@ func (storage *GroupStorage) GetLastGroupMessageID(appid int64, gid int64) (int6
 	}
 	return msgid, nil
 }
-
+// 设置最后接收的id
 func (storage *GroupStorage) SetLastGroupReceivedID(member *AppGroupMemberLoginID, msgid int64) {
 	appid := member.appid
 	gid := member.gid
@@ -182,7 +163,7 @@ func (storage *GroupStorage) SetLastGroupReceivedID(member *AppGroupMemberLoginI
 		return
 	}
 }
-
+// 获取最后群消息的id
 func (storage *GroupStorage) getLastGroupReceivedID(member *AppGroupMemberLoginID) (int64, error) {
 	appid := member.appid
 	gid := member.gid
@@ -208,7 +189,7 @@ func (storage *GroupStorage) getLastGroupReceivedID(member *AppGroupMemberLoginI
 	}
 	return msgid, nil
 }
-
+// 外部方法
 func (storage *GroupStorage) GetLastGroupReceivedID(member *AppGroupMemberLoginID) (int64, error) {
 	storage.mutex.Lock()
 	defer storage.mutex.Unlock()
@@ -232,6 +213,7 @@ func (storage *GroupStorage) DequeueGroupOffline(msg_id int64, appid int64, gid 
 
 
 //获取所有消息id大于msgid的消息
+// 加载群历史消息
 func (storage *GroupStorage) LoadGroupHistoryMessages(appid int64, uid int64, gid int64, msgid int64, limit int) []*EMessage {
 
 	last_id, err := storage.GetLastGroupMessageID(appid, gid)
@@ -272,7 +254,7 @@ func (storage *GroupStorage) LoadGroupHistoryMessages(appid int64, uid int64, gi
 	return c
 }
 
-
+// 加载群离线消息
 func (storage *GroupStorage) LoadGroupOfflineMessage(appid int64, gid int64, uid int64, device_id int64, limit int) []*EMessage {
 	last_id, err := storage.GetLastGroupMessageID(appid, gid)
 	if err != nil {

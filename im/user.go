@@ -1,22 +1,3 @@
-/**
- * Copyright (c) 2014-2015, GoBelieve     
- * All rights reserved.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
-
 package main
 
 import "fmt"
@@ -84,7 +65,14 @@ func GetUserForbidden(appid int64, uid int64) (int, error) {
 	conn := redis_pool.Get()
 	defer conn.Close()
 
+
 	key := fmt.Sprintf("users_%d_%d", appid, uid)
+
+	// 设置forbidden(TODO)
+	_, err := conn.Do("HSET", key, "forbidden", 0)
+	if err != nil {
+		fmt.Println("设置forbidden时出错")
+	}
 
 	forbidden, err := redis.Int(conn.Do("HGET", key, "forbidden"))
 	if err != nil {
@@ -95,30 +83,43 @@ func GetUserForbidden(appid int64, uid int64) (int, error) {
 	return forbidden, nil
 }
 
-func LoadUserAccessToken(token string) (int64, int64, error) {
+func LoadUserAccessToken(key string) (int64, int64, error) {
 	conn := redis_pool.Get()
+	fmt.Println("拿到redis了连接池")
 	defer conn.Close()
-
-	key := fmt.Sprintf("access_token_%s", token)
+	//_, err := conn.Do("HMSET", "access_token_123456", "user_id", "123", "app_id", "123")
+	//if err != nil {
+	//	fmt.Println("hmset 的时候出现错误:", err)
+	//}
+	// 拼接token的key
+	//key := fmt.Sprintf("access_token_%s", token)
 	var uid int64
 	var appid int64
 
+	// 判断该token是否存在
+	// 拼接token的key
+	fmt.Println("要查找的key->", key)
 	exists, err := redis.Bool(conn.Do("EXISTS", key))
 	if err != nil {
+		fmt.Println("判断该token是否存在的时候出现错误")
 		return 0, 0, err
 	}
 	if !exists {
+		fmt.Println("token 不存在!")
 		return 0, 0,  errors.New("token non exists")
 	}
 
+	// 获取appid和userid
 	reply, err := redis.Values(conn.Do("HMGET", key, "user_id", "app_id"))
 	if err != nil {
+		fmt.Println("获取hmget userid appid出错")
 		log.Info("hmget error:", err)
 		return 0, 0, err
 	}
 
 	_, err = redis.Scan(reply, &uid, &appid)
 	if err != nil {
+		fmt.Println("scan error:", err)
 		log.Warning("scan error:", err)
 		return 0, 0, err
 	}

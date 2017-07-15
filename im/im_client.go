@@ -1,26 +1,10 @@
-/**
- * Copyright (c) 2014-2015, GoBelieve     
- * All rights reserved.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
-
 package main
 import "time"
 import "sync/atomic"
-import log "github.com/golang/glog"
+import (
+	log "github.com/golang/glog"
+	"fmt"
+)
 
 type IMClient struct {
 	*Connection
@@ -210,37 +194,47 @@ func (client *IMClient) HandleSyncKey(sync_key *SyncKey) {
 }
 
 func (client *IMClient) HandleIMMessage(msg *IMMessage, seq int) {
+	fmt.Println("处理im消息")
 	if client.uid == 0 {
+		fmt.Println("client has't been authenticated")
 		log.Warning("client has't been authenticated")
-		return
+		// TODO
+		//return
 	}
-
+	fmt.Println("sender : ", msg.sender)
+	fmt.Println("receiver : ", msg.receiver)
+	fmt.Println("content:", msg.content)
 	if msg.sender != client.uid {
+		fmt.Printf("im message sender:%d client uid:%d\n", msg.sender, client.uid)
 		log.Warningf("im message sender:%d client uid:%d\n", msg.sender, client.uid)
-		return
+		//return
 	}
 	msg.timestamp = int32(time.Now().Unix())
 	m := &Message{cmd: MSG_IM, version:DEFAULT_VERSION, body: msg}
 
 	msgid, err := SaveMessage(client.appid, msg.receiver, client.device_ID, m)
 	if err != nil {
+		fmt.Printf("save peer message:%d %d err:", msg.sender, msg.receiver, err)
 		log.Errorf("save peer message:%d %d err:", msg.sender, msg.receiver, err)
 		return
 	}
 
-	//保存到自己的消息队列，这样用户的其它登陆点也能接受到自己发出的消息
+	//保存到自己的消息队列，这样用户的其它登陆点也能接收到自己发出的消息
 	msgid2, err := SaveMessage(client.appid, msg.sender, client.device_ID, m)
 	if err != nil {
+		fmt.Printf("save peer message:%d %d err:", msg.sender, msg.receiver, err)
 		log.Errorf("save peer message:%d %d err:", msg.sender, msg.receiver, err)
 		return
 	}
 
 	//推送外部通知
+	fmt.Println("推送外部通知", m)
 	PushMessage(client.appid, msg.receiver, m)
-
+	client.SendMessage(msg.receiver, m)
 	//发送同步的通知消息
 	notify := &Message{cmd:MSG_SYNC_NOTIFY, body:&SyncKey{msgid}}
 	client.SendMessage(msg.receiver, notify)
+	fmt.Println("推送外部通知", notify)
 
 	//发送给自己的其它登录点
 	notify = &Message{cmd:MSG_SYNC_NOTIFY, body:&SyncKey{msgid2}}
@@ -254,6 +248,7 @@ func (client *IMClient) HandleIMMessage(msg *IMMessage, seq int) {
 	}
 
 	atomic.AddInt64(&server_summary.in_message_count, 1)
+	fmt.Printf("peer message sender:%d receiver:%d msgid:%d\n", msg.sender, msg.receiver, msgid)
 	log.Infof("peer message sender:%d receiver:%d msgid:%d\n", msg.sender, msg.receiver, msgid)
 }
 
@@ -356,6 +351,7 @@ func (client *IMClient) HandleRTMessage(msg *Message) {
 
 
 func (client *IMClient) HandleMessage(msg *Message) {
+	fmt.Println("处理会话消息")
 	switch msg.cmd {
 	case MSG_IM:
 		client.HandleIMMessage(msg.body.(*IMMessage), msg.seq)

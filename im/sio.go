@@ -1,22 +1,3 @@
-/**
- * Copyright (c) 2014-2015, GoBelieve     
- * All rights reserved.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
-
 package main
 
 import (
@@ -25,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"bytes"
+	"fmt"
 )
 
 type SIOServer struct {
@@ -45,6 +27,7 @@ func (s *SIOServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	s.server.ServeHTTP(w, req)
 }
 
+// 启动socket
 func StartSocketIO(address string, tls_address string, 
 	cert_file string, key_file string) {
 	server, err := engineio.NewServer(nil)
@@ -56,8 +39,10 @@ func StartSocketIO(address string, tls_address string,
 		for {
 			conn, err := server.Accept()
 			if err != nil {
+				fmt.Println("连接失败")
 				log.Info("accept connect fail")
 			}
+			fmt.Println("连接成功")
 			handlerEngineIOClient(conn)
 		}
 	}()
@@ -83,6 +68,7 @@ func StartSocketIO(address string, tls_address string,
 
 func handlerEngineIOClient(conn engineio.Conn) {
 	client := NewClient(conn)
+	fmt.Println("有一个客户端连了进来")
 	client.Run()
 }
 
@@ -103,6 +89,7 @@ func SendEngineIOBinaryMessage(conn engineio.Conn, msg *Message) {
 
 func ReadEngineIOMessage(conn engineio.Conn) *Message {
 	t, r, err := conn.NextReader()
+	fmt.Printf("读取engine.io的内容")
 	if err != nil {
 		return nil
 	}
@@ -112,8 +99,10 @@ func ReadEngineIOMessage(conn engineio.Conn) *Message {
 	}
 	r.Close()
 	if t == engineio.MessageText {
+		fmt.Println("是文本消息")
 		return nil
 	} else {
+		fmt.Println("是二进制消息")
 		return ReadBinaryMesage(b)
 	}
 }

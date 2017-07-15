@@ -1,22 +1,3 @@
-/**
- * Copyright (c) 2014-2015, GoBelieve     
- * All rights reserved.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
-
 package main
 
 import (
@@ -239,28 +220,30 @@ func getInitListener(laddr string) (net.Listener, error) {
 func Serve(laddr string, handler func(net.Conn)) {
     l, err := getInitListener(laddr)
     if err != nil {
-        log.Fatalf("start fail: %v", err)
+        fmt.Sprintf("start fail: %v", err)
     }
     theStoppable := newStoppable(l, laddr)
     serve(theStoppable, handler)
-    log.Infof("%s wait all connection close...", laddr)
+    fmt.Sprintf("%s wait all connection close...", laddr)
     theStoppable.wg.Wait()
     listenerWaitGroup.Done()
-    log.Infof("close socket %s", laddr)
+    fmt.Sprintf("close socket %s", laddr)
 }
 
 func serve(l net.Listener, handle func(net.Conn)) {
     defer l.Close()
     for {
         c, err := l.Accept()
+        fmt.Println("获取最初的连接-> 远近ip:")
+        fmt.Println(c.RemoteAddr(), c.LocalAddr())
         if nil != err {
             if IsErrClosing(err) {
-                log.Info("error closing")
+                fmt.Println("error closing")
                 return
             }
             log.Fatalln(err)
         }
-        log.Info("handle client", c.RemoteAddr())
+        fmt.Println("handle client", c.RemoteAddr())
         handle(c)
     }
 }

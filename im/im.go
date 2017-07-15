@@ -1,22 +1,3 @@
-/**
- * Copyright (c) 2014-2015, GoBelieve     
- * All rights reserved.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
-
 package main
 import "net"
 import "fmt"
@@ -58,7 +39,7 @@ func init() {
 }
 
 func handle_client(conn net.Conn) {
-	log.Infoln("handle_client")
+	fmt.Println("handle_client")
 	client := NewClient(conn)
 	client.Run()
 }
@@ -123,7 +104,9 @@ func GetGroupStorageConnPool(gid int64) *StorageConnPool {
 
 
 func GetChannel(uid int64) *Channel{
+	fmt.Println("所有的通道channels :", route_channels)
 	index := uid%int64(len(route_channels))
+	fmt.Println("index:", index)
 	return route_channels[index]
 }
 
@@ -207,6 +190,7 @@ func SendAppMessage(appid int64, uid int64, msg *Message) {
 }
 
 func DispatchAppMessage(amsg *AppMessage) {
+	fmt.Println("dispatch app message(分发app消息)")
 	log.Info("dispatch app message:", Command(amsg.msg.cmd))
 
 	route := app_route.FindRoute(amsg.appid)
@@ -214,12 +198,14 @@ func DispatchAppMessage(amsg *AppMessage) {
 		log.Warningf("can't dispatch app message, appid:%d uid:%d cmd:%s", amsg.appid, amsg.receiver, Command(amsg.msg.cmd))
 		return
 	}
+	fmt.Println("查找客户端")
 	clients := route.FindClientSet(amsg.receiver)
 	if len(clients) == 0 {
 		log.Warningf("can't dispatch app message, appid:%d uid:%d cmd:%s", amsg.appid, amsg.receiver, Command(amsg.msg.cmd))
 		return
 	}
 	for c, _ := range(clients) {
+		fmt.Println("消息队列")
 		c.EnqueueMessage(amsg.msg)
 	}
 }
@@ -290,10 +276,13 @@ func (h loggingHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func StartHttpServer(addr string) {
+	fmt.Println("HTTP服务器addr: ", addr)
 	http.HandleFunc("/summary", Summary)
 	http.HandleFunc("/stack", Stack)
 
 	//rpc function
+	http.HandleFunc("/auth/grant", HTTPGetAuthToken)
+	//http.HandleFunc("/login", )
 	http.HandleFunc("/post_group_notification", PostGroupNotification)
 	http.HandleFunc("/post_im_message", PostIMMessage)
 	http.HandleFunc("/load_latest_message", LoadLatestMessage)
@@ -306,12 +295,20 @@ func StartHttpServer(addr string) {
 	http.HandleFunc("/init_message_queue", InitMessageQueue)
 	http.HandleFunc("/get_offline_count", GetOfflineCount)
 	http.HandleFunc("/dequeue_message", DequeueMessage)
+	http.HandleFunc("/create_group", HTTPCreateGroup)
+	http.HandleFunc("/delete_group", HTTPDeleteGroup)
+	http.HandleFunc("/add_group_member", HTTPAddGroupMember)
+	http.HandleFunc("/remove_group_member", HTTPRemoveGroupMember)
+	http.HandleFunc("/load_group_members", HTTPLoadAllGroupMembers)
+
 
 	handler := loggingHandler{http.DefaultServeMux}
 	HTTPService(addr, handler)
 }
 
+// 开始RPC服务
 func StartRPCServer(addr string) {
+	fmt.Println("RPC服务器addr: ", addr)
 	go func() {
 		lis, err := net.Listen("tcp", addr)
 		if err != nil {
@@ -325,6 +322,7 @@ func StartRPCServer(addr string) {
 	}()
 }
 
+// 同步keyservice
 func SyncKeyService() {
 	for {
 		select {
@@ -357,6 +355,7 @@ func main() {
 	}
 
 	config = read_cfg(flag.Args()[0])
+	fmt.Println("配置: ", config)
 	log.Infof("port:%d redis address:%s\n",
 		config.port,  config.redis_address)
 
@@ -380,9 +379,10 @@ func main() {
 		storage_pools = append(storage_pools, pool)
 	}
 
-
+	// gorpc 的客户端
 	rpc_clients = make([]*gorpc.DispatcherClient, 0)
 	for _, addr := range(config.storage_rpc_addrs) {
+		fmt.Println("grpc客户端准备连接的地址:", addr)
 		c := &gorpc.Client{
 			Conns: 4,
 			Addr: addr,

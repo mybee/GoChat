@@ -1,22 +1,3 @@
-/**
- * Copyright (c) 2014-2015, GoBelieve     
- * All rights reserved.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
-
 package main
 
 import "sync"
@@ -43,7 +24,7 @@ func NewGroup(gid int64, appid int64, members []int64) *Group {
 	}
 	return group
 }
-
+// 新建一个超级群
 func NewSuperGroup(gid int64, appid int64, members []int64) *Group {
 	group := new(Group)
 	group.appid = appid
@@ -69,7 +50,7 @@ func (group *Group) AddMember(uid int64) {
 	members.Add(uid)
 	group.members = members
 }
-
+// 移除成员
 func (group *Group) RemoveMember(uid int64) {
 	group.mutex.Lock()
 	defer group.mutex.Unlock()
@@ -77,16 +58,16 @@ func (group *Group) RemoveMember(uid int64) {
 	members.Remove(uid)
 	group.members = members
 }
-
+// 是否是成员
 func (group *Group) IsMember(uid int64) bool {
 	_, ok := group.members[uid]
 	return ok
 }
-
+// 是否是空
 func (group *Group) IsEmpty() bool {
 	return len(group.members) == 0
 }
-
+// 创建群
 func CreateGroup(db *sql.DB, appid int64, master int64, name string, super int8) int64 {
 	log.Info("create group super:", super)
 	stmtIns, err := db.Prepare("INSERT INTO `group`(appid, master, name, super) VALUES( ?, ?, ?, ? )")
@@ -107,7 +88,7 @@ func CreateGroup(db *sql.DB, appid int64, master int64, name string, super int8)
 	}
 	return gid
 }
-
+// 删除群
 func DeleteGroup(db *sql.DB, group_id int64) bool {
 	var stmt1, stmt2 *sql.Stmt
 
@@ -148,7 +129,7 @@ ROLLBACK:
 	tx.Rollback()
 	return false
 }
-
+// 添加群成员
 func AddGroupMember(db *sql.DB, group_id int64, uid int64) bool {
 	stmtIns, err := db.Prepare("INSERT INTO group_member(group_id, uid) VALUES( ?, ? )")
 	if err != nil {
@@ -178,7 +159,7 @@ func RemoveGroupMember(db *sql.DB, group_id int64, uid int64) bool {
 	}
 	return true
 }
-
+// 加载全部群
 func LoadAllGroup(db *sql.DB) (map[int64]*Group, error) {
 	stmtIns, err := db.Prepare("SELECT id, appid, super FROM `group`")
 	if err != nil {
@@ -210,7 +191,7 @@ func LoadAllGroup(db *sql.DB) (map[int64]*Group, error) {
 	}
 	return groups, nil
 }
-
+// 加载群成员
 func LoadGroupMember(db *sql.DB, group_id int64) ([]int64, error) {
 	stmtIns, err := db.Prepare("SELECT uid FROM group_member WHERE group_id=?")
 	if err != nil {

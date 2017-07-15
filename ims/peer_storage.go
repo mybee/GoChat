@@ -1,23 +1,4 @@
 
-/**
- * Copyright (c) 2014-2015, GoBelieve     
- * All rights reserved.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
-
 package main
 
 import "fmt"
@@ -143,10 +124,11 @@ func (storage *PeerStorage) SavePeerMessage(appid int64, uid int64, device_id in
 	msgid := storage.saveMessage(msg)
 
 	last_id, _ := storage.GetLastMessageID(appid, uid)
+	fmt.Println("最后的消息的id: ", last_id)
 	off := &OfflineMessage{appid:appid, receiver:uid, msgid:msgid, device_id:device_id, prev_msgid:last_id}
 	m := &Message{cmd:MSG_OFFLINE, body:off}
 	last_id = storage.saveMessage(m)
-
+	fmt.Println("现在最后的消息id:", last_id)
 	storage.SetLastMessageID(appid, uid, last_id)
 	return msgid
 }
@@ -156,7 +138,9 @@ func (storage *PeerStorage) SavePeerMessage(appid int64, uid int64, device_id in
 //获取最近离线消息ID
 func (storage *PeerStorage) GetLastMessageID(appid int64, receiver int64) (int64, error) {
 	key := fmt.Sprintf("%d_%d_0", appid, receiver)
+	fmt.Println("获取时的key: ", key)
 	value, err := storage.db.Get([]byte(key), nil)
+	fmt.Println("获取的value : ", string(value))
 	if err != nil {
 		log.Error("get err:", err)
 		return 0, err
@@ -174,7 +158,9 @@ func (storage *PeerStorage) GetLastMessageID(appid int64, receiver int64) (int64
 func (storage *PeerStorage) SetLastMessageID(appid int64, receiver int64, msg_id int64) {
 	key := fmt.Sprintf("%d_%d_0", appid, receiver)
 	value := fmt.Sprintf("%d", msg_id)
+	fmt.Println("存储时的key: ", key)
 	err := storage.db.Put([]byte(key), []byte(value), nil)
+	fmt.Println("存储的value: ", value)
 	if err != nil {
 		log.Error("put err:", err)
 		return
@@ -360,16 +346,20 @@ func (storage *PeerStorage) GetNewCount(appid int64, uid int64, last_received_id
 	}
 
 	count := 0
+	fmt.Println("last id:%d last received id:%d", last_id, last_received_id)
 	log.Infof("last id:%d last received id:%d", last_id, last_received_id)
 
 	msgid := last_id
 	for ; msgid > 0; {
 		msg := storage.LoadMessage(msgid)
+		fmt.Println("根据消息id找到的消息:", msg)
 		if msg == nil {
+			fmt.Printf("load message:%d error\n", msgid)
 			log.Warningf("load message:%d error\n", msgid)
 			break
 		}
 		if msg.cmd != MSG_OFFLINE {
+			fmt.Println("invalid message cmd:", Command(msg.cmd))
 			log.Warning("invalid message cmd:", Command(msg.cmd))
 			break
 		}
@@ -380,10 +370,11 @@ func (storage *PeerStorage) GetNewCount(appid int64, uid int64, last_received_id
 		}
 
 		msg = storage.LoadMessage(off.msgid)
+		fmt.Println("msg: ", msg)
 		if msg == nil {
 			break
 		}
-
+		fmt.Println("msg cmd:", msg.cmd)
 		if !storage.isSender(msg, appid, uid) {
 			count += 1
 			break

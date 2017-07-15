@@ -5,7 +5,10 @@ import "log"
 import "runtime"
 import "time"
 import "flag"
-import "math/rand"
+import (
+	"math/rand"
+	"fmt"
+)
 
 var first int64
 var last int64
@@ -15,7 +18,7 @@ var port int
 
 func init() {
 	flag.Int64Var(&first, "first", 0, "first uid")
-	flag.Int64Var(&last, "last", 0, "last uid")
+	flag.Int64Var(&last, "last", 1, "last uid")
 	flag.StringVar(&local_ip, "local_ip", "0.0.0.0", "local ip")
 	flag.StringVar(&host, "host", "127.0.0.1", "host")
 	flag.IntVar(&port, "port", 23000, "port")
@@ -31,12 +34,13 @@ func receive(uid int64) {
 	conn, err := net.DialTCP("tcp4", &laddr, &addr)
 	if err != nil {
 		log.Println("connect error")
-
 		return
 	}
 
 	seq := 1
-	SendMessage(conn, &Message{MSG_AUTH, seq, DEFAULT_VERSION, &Authentication{uid: uid}})
+	//SendMessage(conn, &Message{MSG_AUTH, seq, DEFAULT_VERSION, &Authentication{uid: uid}})
+	auth := &AuthenticationToken{token:"94756097", platform_id:1, device_id:"00000000"}
+	SendMessage(conn, &Message{MSG_AUTH_TOKEN, seq, DEFAULT_VERSION, auth})
 	ReceiveMessage(conn)
 
 	q := make(chan bool, 10)
@@ -73,6 +77,7 @@ func receive(uid int64) {
 	go func() {
 		for {
 			msg := ReceiveMessage(conn)
+			fmt.Println("我在等待接收消息")
 			if msg == nil {
 				wt <- nil
 				q <- true

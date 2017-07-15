@@ -19,7 +19,13 @@ func NewServerSummary() *ServerSummary {
 	return s
 }
 
-
+ // 获取{
+//"client_count": 0, // 客户端数
+//"connection_count": 0, // 连接数
+//"goroutine_count": 29, // goroutine 的数量
+//"in_message_count": 0, // ??
+//"out_message_count": 0
+//}
 func Summary(rw http.ResponseWriter, req *http.Request) {
 	obj := make(map[string]interface{})
 	obj["goroutine_count"] = runtime.NumGoroutine()

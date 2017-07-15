@@ -14,7 +14,7 @@ var port int
 
 func init() {
 	flag.Int64Var(&first, "first", 0, "first uid")
-	flag.Int64Var(&last, "last", 0, "last uid")
+	flag.Int64Var(&last, "last", 10, "last uid")
 
 	flag.StringVar(&host, "host", "127.0.0.1", "host")
 	flag.IntVar(&port, "port", 23000, "port")

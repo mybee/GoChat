@@ -1,0 +1,23 @@
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
+
+    <script src="//cdn.bootcss.com/engine.io-client/2.0.0/engine.io.min.js"></script>
+</head>
+<body>
+<div id="output"></div>
+<script>
+var socket= eio('ws://192.168.2.116:23000');
+  socket.on('open', function(){
+  socket.send('ping');
+  alert('ok');
+    socket.on('message', function(data){
+ document.getElementById('output').innerHTML+=data;
+ });
+    socket.on('close', function(){
+        alert('close');
+    });
+  });
+</script>
+</body>
+</html>

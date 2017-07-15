@@ -34,10 +34,12 @@ func main() {
 	amsg.receiver = 1000
 	amsg.msg = msg
 	channel2.Publish(amsg)
+	channel1.Publish(amsg)
 
 	time.Sleep(3*time.Second)
 
 	channel1.Unsubscribe(appid, 1000)
 
 	time.Sleep(1*time.Second)
+
 }

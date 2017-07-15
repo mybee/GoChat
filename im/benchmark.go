@@ -20,7 +20,7 @@ const PORT = 23000
 const APP_ID = 7
 const APP_KEY = "sVDIlIiDUm7tWPYWhi6kfNbrqui3ez44"
 const APP_SECRET = "0WiCxAU1jh76SbgaaFC7qIaBPm2zkyM1"
-const URL = "http://127.0.0.1:23002"
+const URL = "http://192.168.2.116:6666"
 
 
 var concurrent int
@@ -28,47 +28,65 @@ var count int
 var c chan bool
 
 func init() {
-	flag.IntVar(&concurrent, "c", 10, "concurrent number")
-	flag.IntVar(&count, "n", 100000, "request number")
+	flag.IntVar(&concurrent, "c", 1, "concurrent number")
+	flag.IntVar(&count, "n", 10, "request number")
 }
 
 
+ // 登录
 func login(uid int64) string {
 	url := URL + "/auth/grant"
 	secret := fmt.Sprintf("%x", md5.Sum([]byte(APP_SECRET)))
 	s := fmt.Sprintf("%d:%s", APP_ID, secret)
+	fmt.Println("appid和加密后的appsecret: ", s)
 	basic := base64.StdEncoding.EncodeToString([]byte(s))
+	fmt.Println("basic: ", basic)
 
 	v := make(map[string]interface{})
 	v["uid"] = uid
-
+	fmt.Println("uid: ", uid)
+	str := fmt.Sprintf("uid=%d", uid)
 	body, _ := json.Marshal(v)
 
 	client := &http.Client{}
-	req, _ := http.NewRequest("POST", url, strings.NewReader(string(body)))
+	fmt.Println("body: ", string(body))
+	fmt.Println("url: ", fmt.Sprintf("%s?uid=%d", url,uid))
+	fmt.Println("str: ", str)
+	req, _ := http.NewRequest("POST", fmt.Sprintf("%s?uid=%d", url,uid), strings.NewReader(str))
+
 	req.Header.Set("Authorization", "Basic " + basic)
+	fmt.Println("auth:", basic)
 	req.Header.Set("Content-Type", "application/json; charset=UTF-8")
 
 	res, err := client.Do(req)
 	if err != nil {
+		fmt.Println("请求错误: ", err)
 		return ""
 	}
 	defer res.Body.Close()
-	
+	fmt.Println("response body : ", res.Body)
+
 	b, err := ioutil.ReadAll(res.Body)
+	fmt.Println("response body : ", string(b))
+
 	if err != nil {
 		return ""
 	}
+	// 转化为json
 	obj, err := simplejson.NewJson(b)
-	token, _ := obj.Get("data").Get("token").String()
+	fmt.Println("obj :", obj)
+	token, _ := obj.Get("token").String()
 	return token
 }
 
+// 发送
 func send(uid int64, receiver int64) {
 	ip := net.ParseIP(HOST)
 	addr := net.TCPAddr{ip, PORT, ""}
 
 	token := login(uid)
+
+	//token := "mafeng"
 
 	if token == "" {
 		panic("")
@@ -106,6 +124,7 @@ func receive(uid int64) {
 	addr := net.TCPAddr{ip, PORT, ""}
 
 	token := login(uid)
+	//token := "mafeng"
 
 	if token == "" {
 		panic("")
@@ -177,4 +196,5 @@ func main() {
 		tps = int64(1000*1000*1000*concurrent*count) / (end - begin)
 	}
 	fmt.Println("tps:", tps)
+	//login(123)
 }
