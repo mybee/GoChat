@@ -1,5 +1,6 @@
 
 # GoChat 
+ ![image](https://github.com/mybee/GoChat/blob/master/img/Snip20170716_43.png)
 1. 支持点对点消息, 群组消息
 2. 支持集群部署
 
