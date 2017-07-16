@@ -9,13 +9,13 @@
 
   可执行程序在bin目录下
 
-5. 安装mysql数据库, redis, 并导入db.sql
+3. 安装mysql数据库, redis, 并导入db.sql
 
-6. 配置程序
+4. 配置程序
    配置项的说明参考ims.cfg.sample, imr.cfg.sample, im.cfg.sample
 
 
-7. 启动程序
+5. 启动程序
 
     nohup $BASEDIR/ims -log_dir=/data/logs/ims ims.cfg >/data/logs/ims/ims.log 2>&1 &
 
@@ -23,3 +23,6 @@
 
     nohup $BASEDIR/im -log_dir=/data/logs/im im.cfg >/data/logs/im/im.log 2>&1 &
 
+6. 分布式部署
+    
+    --> TODO
